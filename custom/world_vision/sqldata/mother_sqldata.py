@@ -11,6 +11,7 @@ class MotherRegistrationDetails(BaseSqlData):
     table_name = "fluff_WorldVisionMotherFluff"
     slug = 'mother_registration_details'
     title = 'Mother Registration Details'
+    width = 50
 
     @property
     def filters(self):
@@ -136,7 +137,7 @@ class PregnantMotherBreakdownByTrimester(BaseSqlData):
 
     def percent_fn(self, y):
         x = self.data['trimester_1'] + self.data['trimester_2'] + self.data['trimester_3']
-        return "%(p).2f%%" % \
+        return "%(p).0f%%" % \
             {
                 "p": (100 * float(y or 0) / float(x or 1))
             }
@@ -371,6 +372,7 @@ class DeliveryStillBirthDetails(BaseSqlData):
     table_name = "fluff_WorldVisionMotherFluff"
     slug = 'delivery_still_birth_details'
     title = ''
+    width = '50'
 
     @property
     def filters(self):
@@ -448,21 +450,27 @@ class PostnatalCareOverview(BaseSqlData):
     @property
     def columns(self):
         return [
-            DatabaseColumn("PNC 1 visits",
+            DatabaseColumn(
+                "PNC visits in 48 hours of delivery",
                 CountUniqueColumn('doc_id', alias="pnc_1", filters=self.filters + [EQ('pp_1_done', 'yes')]),
             ),
-            DatabaseColumn("PNC 2 visits",
+            DatabaseColumn(
+                "PNC visits within 2-4 days of delivery",
                 CountUniqueColumn('doc_id', alias="pnc_2", filters=self.filters + [EQ('pp_2_done', 'yes')]),
             ),
-            DatabaseColumn("PNC 3 visits",
+            DatabaseColumn(
+                "PNC visits within 5-7 days of delivery",
                 CountUniqueColumn('doc_id', alias="pnc_3", filters=self.filters + [EQ('pp_3_done', 'yes')]),
             ),
-            DatabaseColumn("PNC 4 visits",
+            DatabaseColumn(
+                "PNC visits within 21-42 days of delivery",
                 CountUniqueColumn('doc_id', alias="pnc_4", filters=self.filters + [EQ('pp_4_done', 'yes')]),
             ),
-            DatabaseColumn("PNC 1 visits Total Eligible",
+            DatabaseColumn(
+                "PNC 1 visits Total Eligible",
                 CountUniqueColumn('doc_id', alias="pnc_1_eligible",
-                                  filters=self.filters + [AND([NOTEQ('delivery_date', 'empty'), LTE('delivery_date', 'today')])]),
+                                  filters=self.filters + [AND([NOTEQ('delivery_date', 'empty'),
+                                                               LTE('delivery_date', 'today')])]),
             ),
             DatabaseColumn("PNC 2 visits Total Eligible",
                 CountUniqueColumn('doc_id', alias="pnc_2_eligible",

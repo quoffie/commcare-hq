@@ -753,15 +753,11 @@ def get_module_view_context_and_template(app, module):
         modules = app.modules
         parent_module_ids = [mod.unique_id for mod in modules
                              if mod.case_type in parent_types]
-        return [
-            {
-                'unique_id': mod.unique_id,
-                'name': mod.name,
-                'is_parent': mod.unique_id in parent_module_ids,
-            } for mod in app.modules
-            if mod.case_type != case_type and mod.unique_id != module.unique_id
-            and isinstance(mod, Module)
-        ]
+        return [{
+            'unique_id': mod.unique_id,
+            'name': mod.name,
+            'is_parent': mod.unique_id in parent_module_ids,
+        } for mod in app.modules if mod.case_type != case_type and mod.unique_id != module.unique_id]
 
     def get_sort_elements(details):
         return [prop.values() for prop in details.sort_elements]
@@ -1742,7 +1738,8 @@ def get_app_translations(request, domain):
     translations = Translation.get_translations(lang, key, one)
     if isinstance(translations, dict):
         translations = {k: v for k, v in translations.items()
-                        if not id_strings.is_custom_app_string(k)}
+                        if not id_strings.is_custom_app_string(k)
+                        and '=' not in k}
     return json_response(translations)
 
 
