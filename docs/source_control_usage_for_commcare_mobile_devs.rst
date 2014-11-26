@@ -1,4 +1,5 @@
- 
+Source Control Usage (Git) for CommCare Mobile Devs
+===================================================
 
 The CommCare Mobile team uses `GitHub <https://github.com/dimagi/>`__
 and `Git <http://git-scm.com/>`__ for version control and release
@@ -8,7 +9,9 @@ If you're coming from Mercurial, I enjoyed `this brief
 primer <http://importantshock.wordpress.com/2008/08/07/git-vs-mercurial/>`__
 on the key differences
 
-**Background**
+
+Background
+----------
 
 This guide assumes you're installing via the instructions found
 `here <https://bitbucket.org/commcare/commcare-odk/wiki/devsetup>`__
@@ -36,19 +39,14 @@ If you intend to work only on the ODK codebase, then you will need to
 only clone and pull the last two repositories
 
 Place each of these repositories in the same root directory. I put mine
-in my Eclipse workspace for convenience. So my structure is:
+in my Eclipse workspace for convenience. So my structure is: ::
 
-workspace
-
-\|\_\_ dimagi
-
-\|\_\_ javarosa
-
-\|\_\_ commcare
-
-\|\_\_ commcare-odk
-
-\|\_\_ opendatakit.collect
+    workspace
+        \|\_\_ dimagi
+            \|\_\_ javarosa
+            \|\_\_ commcare
+            \|\_\_ commcare-odk
+            \|\_\_ opendatakit.collect
 
 Run ``git clone`` for each repository, e.g.,
 ``git clone https://github.com/dimagi/commcare.git``
@@ -56,7 +54,9 @@ Run ``git clone`` for each repository, e.g.,
 Once this is done, you should be able to open all of the code in
 Eclipse.
 
-**Branching**
+
+Branching
+---------
 
 To submit any changes, you will need to create a branch to do your work
 in.
@@ -74,7 +74,9 @@ changes.
 To push a given feature, make sure you're in the correct branch and
 follow the steps below.
 
-**Committing changes**
+
+Committing changes
+------------------
 
 This assumes that you've made some changes to the code on your local
 machine that you want to push to GitHub. The steps are:
@@ -91,7 +93,9 @@ machine that you want to push to GitHub. The steps are:
 #. Push to GitHub: ``git push origin my_feature_name`` This will create
    a new branch on GitHub with your changes.
 
-**Merging your changes via Pull Request**
+
+Merging your changes via Pull Request
+-------------------------------------
 
 Once you're satisfied with the change set you have (this should be one
 cohesive unit: IE one bug fix, one feature, one refactor, etc. - not a
@@ -122,13 +126,16 @@ Important Note: If you have an outstanding Pull Request that is being
 reviewed and want to submit a bug fix or another feature that is
 unrelated to your original PR, this should be done in a new branch.
 
-**Pulling from Trunk**
+
+Pulling from Trunk
+------------------
 
 You'll also want to pull from the trunk to receive other people's
 updates: ``git pull``
 
-**Further Reading
-**
+
+Further Reading
+---------------
 
 That's about all you need to know to get around with the basics of
 GitHub with Dimagi. Other sometimes useful functions include:
@@ -142,5 +149,3 @@ you can choose to stash your changes, moving them into temporary
 storage. Later, you can move them back in with the same menu.
 
 **Merge:** This is an entirely separate subject we won't deal with now
-
- 

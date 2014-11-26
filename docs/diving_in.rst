@@ -28,15 +28,18 @@ make up the project.
 Let us pick the "appstore" app. 
 It's a nice app to start with because it has a bit of everything; views,
 templates, a model (kind of) and even a static file.
-And I will choose the "project_info" view. 
+In CommCareHQ, the appstore app is called the Exchange, and allows users
+to share the applications (i.e. modules and forms) that they build.
+We will look at the "project_info" view. 
 
 Start with the ``urls.py`` file. HTTP requests will arrive here first.
 The relevant line is ::
 
     url(r'^(?P<domain>[\w\.-]+)/info/$', 'project_info', name='project_info'),
 
-The URL will include something called "domain" made up of alphanumeric
-characters, fullstops and dashes. It will call the "project_info" view.
+We can see from this that the URL will include a "domain" parameter made
+up of alphanumeric characters, fullstops and dashes. It will call the
+"project_info" view.
 
 Open ``views.py``, and jump to the line ::
 
@@ -45,6 +48,7 @@ Open ``views.py``, and jump to the line ::
 There's that "domain" parameter passed from ``urls.py``
 
 
+.. TODO:: Continue
 
 
 .. _Django 1.5: https://docs.djangoproject.com/en/1.5/

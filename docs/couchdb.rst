@@ -1,5 +1,5 @@
 Playing nice with Cloudant/CouchDB
-===
+==================================
 
 We have a lot of views:
 

@@ -1,8 +1,13 @@
- 
+Installing ODK Application Offline for Mobile Devs
+==================================================
 
-NOTE: As of version 2.13, Offline install is now built-in to
-CommCareODK. Details are at \ `Installing CommCareODK
-Android <https://confluence.dimagi.com/display/commcarepublic/Installing+CommCareODK+Android>`__.
+.. Think this page should be mostly/entirely obsolete since Offline
+.. Install got implemented, yes? If no one disagrees I can type up some
+.. new instructions
+
+.. NOTE:: As of version 2.13, Offline install is now built-in to
+          CommCareODK. Details are at 
+          `Installing CommCareODK Android`_.
 
 #. Navigate to your application on CommCareHQ
 #. Click "Deploy"
@@ -24,7 +29,7 @@ Android <https://confluence.dimagi.com/display/commcarepublic/Installing+CommCar
    folder
 #. Select "Start Install"
 
-NOTE: If your app has multimedia you will have to add it separately:
+If your app has multimedia you will have to add it separately:
 
 #. Follow the process above. After pressing "Start Install," you should
    get an error about your media not being found. This error should
@@ -39,5 +44,4 @@ NOTE: If your app has multimedia you will have to add it separately:
    it doesn't, re-try the installation.
 
  
-
- 
+.. _Installing CommCareODK Android: <https://confluence.dimagi.com/display/commcarepublic/Installing+CommCareODK+Android>
