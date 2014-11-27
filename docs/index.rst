@@ -18,8 +18,6 @@ Welcome to CommCareHQ's documentation!
    :maxdepth: 2
 
    intended_audience
-   getting_started
-   diving_in
    technical_overview
    deploy
    reporting
@@ -36,6 +34,10 @@ Welcome to CommCareHQ's documentation!
    elasticsearch
    couchdb
    test_coverage
+
+.. TODO: Finish these, and add them after "intended_audience"
+..  getting_started
+..  diving_in
 
 
 Mobile Development

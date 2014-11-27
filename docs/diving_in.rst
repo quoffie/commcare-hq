@@ -48,7 +48,7 @@ Open ``views.py``, and jump to the line ::
 There's that "domain" parameter passed from ``urls.py``
 
 
-.. TODO:: Continue
+.. TODO: Continue
 
 
 .. _Django 1.5: https://docs.djangoproject.com/en/1.5/
