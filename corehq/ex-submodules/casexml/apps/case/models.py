@@ -1125,6 +1125,16 @@ class CommCareCase(SafeSaveDocument, IndexHoldingMixIn, ComputedDocumentMixin,
     def related_type_info(self):
         return None
 
+    @classmethod
+    def case_types_by_domain(self, domain):
+        cases = CommCareCase.get_db().view("hqcase/types_by_domain",
+            startkey=[domain],
+            endkey=[domain, {}],
+            reduce=True,
+            group=True,
+            group_level=2).all()
+        return [case['key'][1] for case in cases]
+
 
 import casexml.apps.case.signals
 

@@ -290,15 +290,9 @@ class CaseExportReport(ExportReport):
     @property
     def report_context(self):
         context = super(CaseExportReport, self).report_context
-        cases = CommCareCase.get_db().view("hqcase/types_by_domain",
-            startkey=[self.domain],
-            endkey=[self.domain, {}],
-            reduce=True,
-            group=True,
-            group_level=2).all()
         groups = HQGroupExportConfiguration.by_domain(self.domain)
         context.update(
-            case_types=[case['key'][1] for case in cases],
+            case_types=CommCareCase.case_types_by_domain(self.domain),
             group_exports=[group.case_exports for group in groups
                 if group.case_exports],
             report_slug=self.slug,
