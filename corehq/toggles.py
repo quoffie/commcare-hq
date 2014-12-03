@@ -240,3 +240,8 @@ BATCHED_RESTORE = StaticToggle(
     'Batch OTA restore response generation',
     [NAMESPACE_DOMAIN, NAMESPACE_USER]
 )
+
+VELLUM_MODEL_ITERATION = StaticToggle(
+    'vellum_model_iteration',
+    'Vellum Model Iteration'
+)
