@@ -16,10 +16,24 @@
     <script>
 
         var VELLUM_OPTIONS = {
+            plugins: [
             {% if vellum_prerelease %}
             {# use the default set of plugins otherwise #}
             {# non-optional plugins don't need to be listed #}
-            plugins: ['itemset'],
+                'itemset',
+            {% endif %}
+            {% if request|toggle_enabled:'VELLUM_MODEL_ITERATION' %}
+                'modelIteration',
+            {% endif %}
+            ],
+            {% if request|toggle_enabled:'VELLUM_MODEL_ITERATION' %}
+            modelIteration: {
+                modelTypes: ['case', 'fixture'],
+                modelIterationUrl: {
+                    case: '{% url 'hqcase_names' domain=domain %}',
+                    fixture: '{% url 'fixture_names' domain=domain %}'
+                }
+            },
             {% endif %}
             features: {{ features|JSON }},
             core: {
