@@ -11,7 +11,7 @@ from django.utils.translation import ugettext as _, ugettext_noop
 from django.views.decorators.http import require_POST
 from django.views.generic.base import TemplateView
 
-from corehq.apps.domain.decorators import login_or_digest
+from corehq.apps.domain.decorators import login_or_digest, login_and_domain_required
 from corehq.apps.domain.views import BaseDomainView
 from corehq.apps.fixtures.tasks import fixture_upload_async, fixture_download_async
 from corehq.apps.fixtures.dispatcher import require_can_edit_fixtures
@@ -414,3 +414,8 @@ def upload_fixture_api(request, domain, **kwargs):
         resp_json["message"] += "%s%s%s" % (("and following " if num_unknown_groups else ""), warn_users, upload_resp.unknown_users)
 
     return HttpResponse(json.dumps(resp_json), mimetype="application/json")
+
+
+@login_and_domain_required
+def fixture_names(request, domain):
+    return HttpResponse(json.dumps([f.tag for f in FixtureDataType.by_domain(domain)]))

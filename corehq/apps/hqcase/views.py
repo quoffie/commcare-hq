@@ -75,3 +75,8 @@ def explode_cases(request, domain, template="hqcase/explode_cases.html"):
         'domain': domain,
         'users': CommCareUser.by_domain(domain),
     })
+
+
+@login_and_domain_required
+def case_names(request, domain):
+    return HttpResponse(json.dumps(CommCareCase.case_types_by_domain(domain)))

@@ -12,6 +12,7 @@ urlpatterns = patterns('corehq.apps.fixtures.views',
     url(r'^edit_lookup_tables/upload/$', UploadItemLists.as_view(), name='upload_fixtures'),
     url(r'^edit_lookup_tables/file/$', 'download_file', name="download_fixture_file"),
     url(r'^edit_lookup_tables/update-tables/(?P<data_type_id>[\w-]+)?$', 'update_tables', name='update_lookup_tables'),
+    url(r'^names$', 'fixture_names', name='fixture_names'),
 
     # upload status
     url(r'^upload/status/(?P<download_id>[0-9a-fA-Z]{25,32})/$', FixtureUploadStatusView.as_view(),
