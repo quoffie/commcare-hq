@@ -182,6 +182,12 @@ def send_message_via_backend(msg, backend=None, orig_phone_number=None):
     except Exception:
         logging.exception("Could not clean text for sms dated '%s' in domain '%s'" % (msg.date, msg.domain))
     try:
+        if not domain_has_privilege(msg.domain, privileges.OUTBOUND_SMS):
+            raise Exception(
+                ("Domain '%s' does not have permission to send SMS."
+                 "  Please investigate why this function was called.") % msg.domain
+            )
+
         if not backend:
             backend = msg.outbound_backend
             # note: this will handle "verified" contacts that are still pending
