@@ -1,5 +1,3 @@
-from datetime import datetime, timedelta, date, time
-from django.test.testcases import TestCase
 from casexml.apps.case.models import CommCareCase
 from casexml.apps.case.sharedmodels import CommCareCaseIndex
 from corehq.apps.accounting.models import (
@@ -9,13 +7,12 @@ from corehq.apps.accounting.models import (
     Subscription,
     SubscriptionAdjustment,
 )
-from corehq.apps.accounting.tasks import activate_subscriptions
 from corehq.apps.accounting.tests import BaseAccountingTest
 from corehq.apps.reminders.models import *
 from corehq.apps.reminders.event_handlers import get_message_template_params
-from corehq.apps.users.models import CouchUser, CommCareUser
+from corehq.apps.users.models import CommCareUser
 from corehq.apps.sms.models import CallLog, ExpectedCallbackEventLog, CALLBACK_RECEIVED, CALLBACK_PENDING, CALLBACK_MISSED
-from corehq.apps.sms.mixin import VerifiedNumber, BackendMapping
+from corehq.apps.sms.mixin import BackendMapping
 from corehq.apps.sms.test_backend import TestSMSBackend
 from dimagi.utils.parsing import json_format_datetime
 from dimagi.utils.couch import LOCK_EXPIRATION

@@ -55,6 +55,7 @@ class TestCaseBackend(SMSBackend):
         except ResourceNotFound:
             return False
 
+
 class BackendTestCase(BaseAccountingTest):
     def setUp(self):
         super(BackendTestCase, self).setUp()
@@ -229,7 +230,7 @@ class BackendTestCase(BaseAccountingTest):
 
         # Test overriding with a domain-level backend
 
-        self.domain_obj = Domain.get(self.domain_obj._id) # Prevent resource conflict
+        self.domain_obj = Domain.get(self.domain_obj._id)  # Prevent resource conflict
         self.domain_obj.default_sms_backend_id = self.backend5._id
         self.domain_obj.save()
 
