@@ -1,4 +1,11 @@
-from django.test import TestCase
+from corehq.apps.accounting.models import (
+    BillingAccount,
+    DefaultProductPlan,
+    SoftwarePlanEdition,
+    Subscription,
+    SubscriptionAdjustment,
+)
+from corehq.apps.accounting.tests import BaseAccountingTest
 from corehq.apps.domain.models import Domain
 from corehq.apps.sms.mixin import SMSBackend, BackendMapping, BadSMSConfigException
 from corehq.apps.sms.api import send_sms, send_sms_to_verified_number, send_sms_with_backend, send_sms_with_backend_name, BackendAuthorizationException
@@ -48,14 +55,30 @@ class TestCaseBackend(SMSBackend):
         except ResourceNotFound:
             return False
 
-class BackendTestCase(TestCase):
+class BackendTestCase(BaseAccountingTest):
     def setUp(self):
+        super(BackendTestCase, self).setUp()
+
         self.domain = "test-domain"
         self.domain2 = "test-domain2"
 
         self.domain_obj = Domain(name=self.domain)
         self.domain_obj.save()
         self.domain_obj = Domain.get(self.domain_obj._id) # Prevent resource conflict
+
+        self.account, _ = BillingAccount.get_or_create_account_by_domain(
+            self.domain,
+            created_by="tests"
+        )
+        advanced_plan_version = DefaultProductPlan.get_default_plan_by_domain(
+            self.domain, edition=SoftwarePlanEdition.ADVANCED)
+        self.subscription = Subscription.new_domain_subscription(
+            self.account,
+            self.domain,
+            advanced_plan_version
+        )
+        self.subscription.is_active = True
+        self.subscription.save()
 
         self.backend1 = TestCaseBackend(name="BACKEND1",is_global=True)
         self.backend1.save()
@@ -137,6 +160,10 @@ class BackendTestCase(TestCase):
         self.contact.delete_verified_number()
         self.case.delete()
 
+        SubscriptionAdjustment.objects.all().delete()
+        self.subscription.delete()
+        self.account.delete()
+
         self.domain_obj.delete()
 
         settings.SMS_LOADED_BACKENDS.pop()
@@ -202,6 +229,7 @@ class BackendTestCase(TestCase):
 
         # Test overriding with a domain-level backend
 
+        self.domain_obj = Domain.get(self.domain_obj._id) # Prevent resource conflict
         self.domain_obj.default_sms_backend_id = self.backend5._id
         self.domain_obj.save()
 
