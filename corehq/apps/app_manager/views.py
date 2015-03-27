@@ -1057,7 +1057,7 @@ def view_generic(request, domain, app_id=None, module_id=None, form_id=None, is_
         'copy_app_form': copy_app_form if copy_app_form is not None else CopyApplicationForm(app_id)
     })
 
-    context['latest_commcare_version'] = get_commcare_versions()[-1]
+    context['latest_commcare_version'] = get_commcare_versions(request.user)[-1]
 
     if app and app.doc_type == 'Application' and has_privilege(request, privileges.COMMCARE_LOGO_UPLOADER):
         uploader_slugs = ANDROID_LOGO_PROPERTY_MAPPING.keys()
@@ -1523,7 +1523,7 @@ def edit_module_attr(request, domain, app_id, module_id, attr):
         module.parent_select.module_id = parent_module
 
     if app.enable_module_filtering and should_edit('module_filter'):
-        module['module_filter'] = req.POST.get('module_filter')
+        module['module_filter'] = request.POST.get('module_filter')
 
     if should_edit('case_list_form_id'):
         module.case_list_form.form_id = request.POST.get('case_list_form_id')
@@ -1562,12 +1562,12 @@ def edit_module_attr(request, domain, app_id, module_id, attr):
                 if not form.schedule:
                     form.schedule = FormSchedule()
         if should_edit("root_module_id"):
-            if not req.POST.get("root_module_id"):
+            if not request.POST.get("root_module_id"):
                 module["root_module_id"] = None
             else:
                 try:
                     app.get_module(module_id)
-                    module["root_module_id"] = req.POST.get("root_module_id")
+                    module["root_module_id"] = request.POST.get("root_module_id")
                 except ModuleNotFoundException:
                     messages.error(_("Unknown Module"))
 
@@ -2760,7 +2760,7 @@ def _questions_for_form(request, form, langs):
 class AppSummaryView(JSONResponseMixin, LoginAndDomainMixin, BasePageView, ApplicationViewMixin):
     urlname = 'app_summary'
     page_title = ugettext_noop("Summary")
-    template_name = 'app_manager/summary_new.html'
+    template_name = 'app_manager/summary.html'
 
     def dispatch(self, request, *args, **kwargs):
         request.preview_bootstrap3 = True
