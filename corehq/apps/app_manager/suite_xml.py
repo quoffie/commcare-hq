@@ -19,14 +19,16 @@ from .exceptions import (
     SuiteValidationError,
 )
 from corehq.apps.app_manager import id_strings
+from corehq.apps.app_manager.const import CAREPLAN_GOAL, CAREPLAN_TASK, SCHEDULE_LAST_VISIT, SCHEDULE_PHASE, \
+    CASE_ID, RETURN_TO, USERCASE_PREFIX
 from corehq.apps.app_manager.exceptions import UnknownInstanceError, ScheduleError, FormNotFoundException
 from corehq.apps.app_manager.templatetags.xforms_extras import trans
-from corehq.apps.app_manager.const import CAREPLAN_GOAL, CAREPLAN_TASK, SCHEDULE_LAST_VISIT, SCHEDULE_PHASE, RETURN_TO
-from corehq.apps.app_manager.util import split_path, create_temp_sort_column, languages_mapping
+from corehq.apps.app_manager.util import split_path, create_temp_sort_column, languages_mapping, \
+    any_usercase_items
 from corehq.apps.app_manager.xform import SESSION_CASE_ID, autoset_owner_id_for_open_case, \
     autoset_owner_id_for_subcase
 from corehq.apps.app_manager.xpath import dot_interpolate, CaseIDXPath, session_var, \
-    CaseTypeXpath, ItemListFixtureXpath, ScheduleFixtureInstance, XPath, ProductInstanceXpath
+    CaseTypeXpath, ItemListFixtureXpath, ScheduleFixtureInstance, XPath, ProductInstanceXpath, UserCaseXPath
 from corehq.apps.hqmedia.models import HQMediaMapItem
 from dimagi.utils.decorators.memoized import memoized
 from dimagi.utils.web import get_url_base
@@ -723,6 +725,10 @@ class SuiteGenerator(SuiteGeneratorBase):
         'menus',
         'fixtures',
     )
+
+    def __init__(self, app, usercase_type=None):
+        super(SuiteGenerator, self).__init__(app)
+        self.usercase_type = usercase_type
 
     def post_process(self, suite):
         if self.app.enable_post_form_workflow:
@@ -1436,6 +1442,20 @@ class SuiteGenerator(SuiteGeneratorBase):
         frame_case_not_created.add_command(return_to)
         entry.stack.add_frame(frame_case_not_created)
 
+    def configure_entry_usercase(self, e):
+        if self.usercase_type is None:
+            # Is call center config enabled? If it's not enabled, the
+            # SuiteGenerator constructor will have been passed a value of None
+            # for usercase_type. We shouldn't be using user case properties
+            # if user case functionality is disabled.
+            raise ValueError('Unable to determine user case. User case type unknown.')
+        case_type = CaseTypeXpath(self.usercase_type).case()
+        case = UserCaseXPath(case_type).case()
+        e.datums.append(SessionDatum(
+            id='usercase_id',
+            function=('%s/@case_id' % case)
+        ))
+
     def configure_entry_module_form(self, module, e, form=None, use_filter=True, **kwargs):
         def case_sharing_requires_assertion(form):
             actions = form.active_actions()
@@ -1445,6 +1465,14 @@ class SuiteGenerator(SuiteGeneratorBase):
                 for subcase in actions['subcases']:
                     if autoset_owner_id_for_subcase(subcase):
                         return True
+            return False
+
+        def uses_usercase(form):
+            actions = form.active_actions()
+            if 'update_case' in actions and hasattr(actions['update_case'], 'update'):
+                return any_usercase_items(actions['update_case'].update.keys())
+            if 'case_preload' in actions:
+                return any_usercase_items(actions['case_preload'].preload.values())
             return False
 
         datums = []
@@ -1457,6 +1485,9 @@ class SuiteGenerator(SuiteGeneratorBase):
 
         if form and 'open_case' in form.active_actions() and form.is_case_list_form:
             self.configure_entry_as_case_list_form(form, e)
+
+        if form and uses_usercase(form):
+            self.configure_entry_usercase(e)
 
         if form and self.app.case_sharing and case_sharing_requires_assertion(form):
             self.add_case_sharing_assertion(e)

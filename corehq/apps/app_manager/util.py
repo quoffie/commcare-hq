@@ -5,7 +5,8 @@ import itertools
 from corehq.apps.builds.models import CommCareBuildConfig
 from couchdbkit.exceptions import DocTypeError
 from corehq import Domain
-from corehq.apps.app_manager.const import CT_REQUISITION_MODE_3, CT_LEDGER_STOCK, CT_LEDGER_REQUESTED, CT_REQUISITION_MODE_4, CT_LEDGER_APPROVED, CT_LEDGER_PREFIX
+from corehq.apps.app_manager.const import CT_REQUISITION_MODE_3, CT_LEDGER_STOCK, CT_LEDGER_REQUESTED, \
+    CT_REQUISITION_MODE_4, CT_LEDGER_APPROVED, CT_LEDGER_PREFIX, USERCASE_PREFIX
 from corehq.apps.app_manager.xform import XForm, XFormException, parse_xml
 import re
 from dimagi.utils.decorators.memoized import memoized
@@ -121,14 +122,16 @@ class ParentCasePropertyBuilder(object):
 
     @memoized
     def get_properties(self, case_type, already_visited=(),
-                       include_shared_properties=True):
+                       include_shared_properties=True,
+                       usercase_type=None):
         if case_type in already_visited:
             return ()
 
         get_properties_recursive = functools.partial(
             self.get_properties,
             already_visited=already_visited + (case_type,),
-            include_shared_properties=include_shared_properties
+            include_shared_properties=include_shared_properties,
+            usercase_type=usercase_type
         )
 
         case_properties = set(self.defaults)
@@ -147,11 +150,24 @@ class ParentCasePropertyBuilder(object):
             for app in self.get_other_case_sharing_apps_in_domain():
                 case_properties.update(
                     get_case_properties(
-                        app, [case_type], include_shared_properties=False
+                        app, [case_type], include_shared_properties=False, usercase_type=usercase_type
                     ).get(case_type, [])
                 )
 
-        return case_properties
+        # prefix user case properties with "user:".
+        prefix_user = lambda p: USERCASE_PREFIX + p if case_type == usercase_type else p
+
+        # .. note:: if the user case type has a parent case type, its
+        #           properties will be returned as `user:parent/property`
+        #
+        # .. note:: if this case type is not the user case type, but it has a
+        #           parent case type which is the user case type, then the
+        #           parent case type's properties will be returned as
+        #           `parent/user:property`. That's probably unlikely, and a
+        #           good thing that it is, because that looks like a mess, and
+        #           will likely cause problems.
+        #
+        return {prefix_user(p) for p in case_properties}
 
     @memoized
     def get_case_updates(self, form, case_type):
@@ -175,29 +191,44 @@ class ParentCasePropertyBuilder(object):
 
         return parent_map
 
-    def get_case_property_map(self, case_types, include_shared_properties=True):
+    def get_case_property_map(self, case_types, include_shared_properties=True, usercase_type=None):
         case_types = sorted(case_types)
         return {
             case_type: sorted(self.get_properties(
-                case_type, include_shared_properties=include_shared_properties
+                case_type, include_shared_properties=include_shared_properties, usercase_type=usercase_type
             ))
             for case_type in case_types
         }
 
 
 def get_case_properties(app, case_types, defaults=(),
-                        include_shared_properties=True):
+                        include_shared_properties=True,
+                        usercase_type=None):
     builder = ParentCasePropertyBuilder(app, defaults)
     return builder.get_case_property_map(
-        case_types, include_shared_properties=include_shared_properties
+        case_types,
+        include_shared_properties=include_shared_properties,
+        usercase_type=usercase_type
     )
 
 
+def get_usercase_type(domain_name):
+    domain = Domain.get_by_name(domain_name)
+    if not domain:
+        return None
+    return domain.call_center_config.case_type if domain.call_center_config.enabled else None
+
+
 def get_all_case_properties(app):
+    case_types = set(itertools.chain.from_iterable(m.get_case_types() for m in app.modules))
+    usercase_type = get_usercase_type(app.domain)
+    if usercase_type:
+        case_types.add(usercase_type)
     return get_case_properties(
         app,
-        set(itertools.chain.from_iterable(m.get_case_types() for m in app.modules)),
-        defaults=('name',)
+        case_types,
+        defaults=('name',),
+        usercase_type=usercase_type
     )
 
 
@@ -359,3 +390,17 @@ def get_commcare_versions(request_user):
     versions = [i.build.version for i in CommCareBuildConfig.fetch().menu
                 if request_user.is_superuser or not i.superuser_only]
     return sorted(versions, key=version_key)
+
+
+def get_usercase_keys(items):
+    n = len(USERCASE_PREFIX)
+    return {k[n:]: v for k, v in items if k.startswith(USERCASE_PREFIX)}
+
+
+def get_usercase_values(items):
+    n = len(USERCASE_PREFIX)
+    return {k: v[n:] for k, v in items if v.startswith(USERCASE_PREFIX)}
+
+
+def any_usercase_items(items):
+    return any(i.startswith(USERCASE_PREFIX) for i in items)

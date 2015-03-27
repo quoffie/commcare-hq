@@ -392,9 +392,10 @@ class DomainGlobalSettingsForm(forms.Form):
                     "of all cases created for call center users.")
     )
     call_center_case_type = CharField(
-        label=_("Call Center Case Type"),
         required=False,
-        help_text=_("Enter the case type to be used for FLWs in call center apps")
+        # Hide the case type, but keep the form field in order to preserve
+        # existing values on update.
+        widget=forms.HiddenInput()
     )
 
     def __init__(self, *args, **kwargs):
@@ -409,7 +410,6 @@ class DomainGlobalSettingsForm(forms.Form):
             if not CALLCENTER.enabled(domain):
                 self.fields['call_center_enabled'].widget = forms.HiddenInput()
                 self.fields['call_center_case_owner'].widget = forms.HiddenInput()
-                self.fields['call_center_case_type'].widget = forms.HiddenInput()
             else:
                 groups = Group.get_case_sharing_groups(domain)
                 users = CommCareUser.by_domain(domain)
@@ -454,7 +454,7 @@ class DomainGlobalSettingsForm(forms.Form):
             if domain.call_center_config.enabled:
                 domain.internal.using_call_center = True
                 domain.call_center_config.case_owner_id = self.cleaned_data.get('call_center_case_owner', None)
-                domain.call_center_config.case_type = self.cleaned_data.get('call_center_case_type', None)
+                domain.call_center_config.case_type = self.cleaned_data.get('call_center_case_type') or 'user-case'
 
             global_tz = self.cleaned_data['default_timezone']
             if domain.default_timezone != global_tz:

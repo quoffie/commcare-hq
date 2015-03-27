@@ -3,7 +3,7 @@ from functools import wraps
 import logging
 from casexml.apps.case.xml import V2_NAMESPACE
 from corehq.apps.app_manager.const import APP_V1, SCHEDULE_PHASE, SCHEDULE_LAST_VISIT, SCHEDULE_LAST_VISIT_DATE, \
-    CASE_ID
+    CASE_ID, USERCASE_ID, USERCASE_PREFIX
 from lxml import etree as ET
 from corehq.util.view_utils import get_request
 from dimagi.utils.decorators.memoized import memoized
@@ -85,6 +85,7 @@ def requires_itext(on_fail_return=None):
 
 
 SESSION_CASE_ID = CaseIDXPath(session_var(CASE_ID))
+SESSION_USERCASE_ID = CaseIDXPath(session_var(USERCASE_ID))
 
 
 class WrappedAttribs(object):
@@ -405,6 +406,10 @@ class CaseBlock(object):
         for key, value in updates.items():
             if key == 'name':
                 key = 'case_name'
+            elif key.startswith(USERCASE_PREFIX):
+                # Skip usercase keys. They are handled by the usercase block.
+                # cf. add_usercase
+                continue
             if self.is_attachment(value):
                 attachments[key] = value
             else:
@@ -504,6 +509,9 @@ class XForm(WrappedNode):
             xmlns = self.data_node.tag_xmlns
             self.namespaces.update(x="{%s}" % xmlns)
         self.has_casedb = False
+
+    def __str__(self):
+        return ET.tostring(self.xml) if self.xml is not None else ''
 
     def validate(self, version='1.0'):
         validate_xform(ET.tostring(self.xml) if self.xml is not None else '',
@@ -961,6 +969,7 @@ class XForm(WrappedNode):
             self.add_case_and_meta_1(form)
         else:
             self.create_casexml_2(form)
+            self.add_usercase(form)
             self.add_meta_2(form)
 
     def add_case_and_meta_advanced(self, form):
@@ -975,6 +984,44 @@ class XForm(WrappedNode):
                 meta_blocks.add(meta)
 
         return meta_blocks
+
+    def _add_usercase_bind(self, usercase_path):
+        self.add_bind(
+            nodeset=usercase_path + 'case/@case_id',
+            calculate=SESSION_USERCASE_ID,
+        )
+
+    def add_usercase(self, form):
+        from corehq.apps.app_manager.util import split_path, get_usercase_keys, get_usercase_values
+
+        usercase_path = 'usercase/'
+        actions = form.active_actions()
+
+        if 'update_case' in actions:
+            usercase_updates = get_usercase_keys(actions['update_case'].update.items())
+            if usercase_updates:
+                self._add_usercase_bind(usercase_path)
+                usercase_block = _make_elem('{x}usercase')
+                case_block = CaseBlock(self, usercase_path)
+                case_block.add_update_block(usercase_updates)
+                usercase_block.append(case_block.elem)
+                self.data_node.append(usercase_block)
+
+        if 'case_preload' in actions:
+            self.add_casedb()
+            usercase_preloads = get_usercase_values(actions['case_preload'].preload.items())
+            for nodeset, property_ in usercase_preloads.items():
+                parent_path, property_ = split_path(property_)
+                property_xpath = {
+                    'name': 'case_name',
+                    'owner_id': '@owner_id'
+                }.get(property_, property_)
+
+                id_xpath = get_case_parent_id_xpath(parent_path, case_id_xpath=SESSION_USERCASE_ID)
+                self.add_setvalue(
+                    ref=nodeset,
+                    value=id_xpath.case().property(property_xpath),
+                )
 
     def add_meta_2(self, form):
         case_parent = self.data_node
@@ -1254,6 +1301,9 @@ class XForm(WrappedNode):
             if 'case_preload' in actions:
                 self.add_casedb()
                 for nodeset, property in actions['case_preload'].preload.items():
+                    # Skip usercase properties
+                    if property.startswith(USERCASE_PREFIX):
+                        continue
                     parent_path, property = split_path(property)
                     property_xpath = {
                         'name': 'case_name',
@@ -1422,6 +1472,9 @@ class XForm(WrappedNode):
             if action.preload:
                 self.add_casedb()
                 for property, nodeset in action.preload.items():
+                    if property.startswith(USERCASE_PREFIX):
+                        # Ignore usercase properties
+                        continue
                     parent_path, property = split_path(property)
                     property_xpath = {
                         'name': 'case_name',
