@@ -6,11 +6,12 @@ from sqlagg.columns import (
     SimpleColumn,
     YearColumn,
 )
-from corehq.apps.reports.sqlreport import DatabaseColumn
+from corehq.apps.reports.sqlreport import DatabaseColumn, AggregateColumn
 from corehq.apps.userreports.indicators.specs import DataTypeProperty
 from corehq.apps.userreports.reports.filters import DateFilterValue, ChoiceListFilterValue, \
     NumericFilterValue
 from corehq.apps.userreports.specs import TypeProperty
+from corehq.apps.userreports.sql import get_expanded_column_config, SqlColumnConfig
 from corehq.apps.userreports.transforms.factory import TransformFactory
 
 
@@ -44,6 +45,12 @@ class ReportColumn(JsonObject):
     display = StringProperty()
     description = StringProperty()
 
+    def format_data(self, data):
+        """
+        Subclasses can apply formatting to the entire dataset.
+        """
+        pass
+
 
 class FieldColumn(ReportColumn):
     type = TypeProperty('field')
@@ -65,28 +72,55 @@ class FieldColumn(ReportColumn):
             obj['column_id'] = obj.get('alias') or obj['field']
         return super(FieldColumn, cls).wrap(obj)
 
+    def format_data(self, data):
+        if self.format == 'percent_of_total':
+            column_name = self.column_id
+            total = sum(row[column_name] for row in data)
+            for row in data:
+                row[column_name] = '{:.0%}'.format(
+                    float(row[column_name]) / total
+                )
+
     def get_format_fn(self):
         if self.transform:
             return TransformFactory.get_transform(self.transform).get_transform_function()
         return None
 
-    def get_sql_column(self):
+    def get_sql_column_config(self, data_source_config):
         if self.aggregation == "expand":
-            raise RuntimeError("Don't use this method if the aggregation is 'expand'")
-        return DatabaseColumn(
-            self.display,
-            SQLAGG_COLUMN_MAP[self.aggregation](self.field, alias=self.alias),
-            sortable=False,
-            data_slug=self.column_id,
-            format_fn=self.get_format_fn(),
-            help_text=self.description
-        )
+            return get_expanded_column_config(data_source_config, self)
+        else:
+            return SqlColumnConfig(columns=[
+                DatabaseColumn(
+                    header=self.display,
+                    agg_column=SQLAGG_COLUMN_MAP[self.aggregation](self.field, alias=self.column_id),
+                    sortable=False,
+                    data_slug=self.column_id,
+                    format_fn=self.get_format_fn(),
+                    help_text=self.description
+                )
+            ])
 
 
 class PercentageColumn(ReportColumn):
     type = TypeProperty('percent')
     numerator = ObjectProperty(FieldColumn, required=True)
     denominator = ObjectProperty(FieldColumn, required=True)
+
+    def get_sql_column_config(self, data_source_config):
+        # todo: better checks that fields are not expand
+        num_config = self.numerator.get_sql_column_config(data_source_config)
+        denom_config = self.denominator.get_sql_column_config(data_source_config)
+        return SqlColumnConfig(columns=[
+            AggregateColumn(
+                header=self.display,
+                aggregate_fn=lambda n, d: "{}/{}".format(n,d),
+                columns=[c.view for c in num_config.columns + denom_config.columns],
+                slug=self.column_id,
+                data_slug=self.column_id,
+            )],
+            warnings=num_config.warnings + denom_config.warnings,
+        )
 
 
 class FilterChoice(JsonObject):
